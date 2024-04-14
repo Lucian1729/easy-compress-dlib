@@ -12,6 +12,11 @@
 
 namespace easy_compress_dlib {
 
+KernelContainer kernels = {
+    dlib::lz77_buffer_kernel_1<sliding_buffer>{total_limit, lookahead_limit},
+    dlib::lz77_buffer_kernel_2<sliding_buffer>{total_limit, lookahead_limit},
+    dlib::lz77_buffer_kernel_c<dlib::lz77_buffer_kernel_2<sliding_buffer>>{total_limit, lookahead_limit}
+};
 // Custom data structure to store compression metrics
 struct CompressionMetricEntry {
     std::string file_name;
