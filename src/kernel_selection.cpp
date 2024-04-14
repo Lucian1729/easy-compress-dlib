@@ -8,6 +8,7 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include "lz77_buffer_kernel_1_wrapper.h"
 
 namespace easy_compress_dlib {
 
