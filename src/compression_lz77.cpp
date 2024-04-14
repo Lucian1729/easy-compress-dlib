@@ -6,6 +6,7 @@
 #include "../dlib/lz77_buffer/lz77_buffer_kernel_abstract.h"
 #include "../dlib/lz77_buffer/lz77_buffer_kernel_c.h"
 #include "sliding_buffer.h" 
+#include "lz77_buffer_kernel_1_wrapper.h"
 
 // Define the total_limit and lookahead_limit values
 const unsigned long total_limit = 16;  // Example value, adjust as needed
