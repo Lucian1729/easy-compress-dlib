@@ -1,16 +1,12 @@
 #include "../include/easy_compress_dlib/kernel_selection.h"
 #include <bits/stdc++.h>
-#include <vector>
-#include <string>
-#include <tuple>
-#include <array>
-#include <algorithm>
 #include <concepts>
 #include <chrono>
 #include <fstream>
 #include <sstream>
 
 namespace easy_compress_dlib {
+// Custom container for KernelMetrics
 // Custom container for KernelMetrics
 template <std::size_t N>
 struct KernelMetrics {
@@ -19,52 +15,10 @@ struct KernelMetrics {
     std::array<double, N> compression_times;
 };
 
-// Function to create KernelMetrics
-template <std::size_t N>
-KernelMetrics<N> createKernelMetrics(const std::array<std::tuple<std::string, double, double>, N>& entries) {
-    KernelMetrics<N> metrics;
-    for (std::size_t i = 0; i < N; ++i) {
-        metrics.file_types[i] = std::get<0>(entries[i]);
-        metrics.bpbs[i] = std::get<1>(entries[i]);
-        metrics.compression_times[i] = std::get<2>(entries[i]);
-    }
-    return metrics;
-}
-
-// struct for kernal metrics
-template <typename T>
-struct Kernel {
-    std::string name;
-    double value1;
-    double value2;
-    
-    constexpr Kernel(const std::string& n, double v1, double v2) : name(n), value1(v1), value2(v2) {}
-};
-
-
-template <std::size_t... Ns>
-struct KernelSets {
-    // Type alias for array of kernels
-    template <std::size_t N>
-    using KernelArray = std::array<Kernel, N>;
-
-    // Type alias for array of sets
-    using SetsArray = std::array<KernelArray<Ns>, sizeof...(Ns)>;
-
-    SetsArray sets;
-
-    // Constructor to initialize kernel sets
-    constexpr KernelSets(const KernelArray<Ns>&... kernelSets) : sets({kernelSets...}) {}
-
-    // Access a specific kernel set by index
-    template <std::size_t Index>
-    constexpr auto& get() {
-        return std::get<Index>(sets);
-    }
-};
 
 // Kernel Metrics Initialization
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1a_metrics = {
+
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1a_metrics = {
     std::make_tuple("text", 4.576, 875),
     std::make_tuple("play", 4.82062, 875),
     std::make_tuple("html", 5.27058, 875),
@@ -78,8 +32,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1a_metr
     std::make_tuple("man",  5.03998, 875)
 };
 
-
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1b_metrics = {
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1b_metrics = {
     std::make_tuple("text", 3.48033, 844),
     std::make_tuple("play", 3.48761, 844),
     std::make_tuple("html", 3.79173, 844),
@@ -93,7 +46,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1b_metr
     std::make_tuple("man",  3.97445, 844) 
 };
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1c_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1c_metrics ={
     std::make_tuple("text", 2.72525, 1031),
     std::make_tuple("play", 2.8121,  1031),
     std::make_tuple("html", 2.79706, 1031), 
@@ -107,7 +60,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1c_metr
     std::make_tuple("man",  3.33665, 1031)
 };
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1da_metrics ={ 
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1da_metrics ={ 
     std::make_tuple("text", 2.39754, 1812), 
     std::make_tuple("play", 2.71176, 1812),
     std::make_tuple("html", 2.51839, 1812), 
@@ -121,7 +74,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1da_met
     std::make_tuple("man",  3.28555, 1812) 
 }; 
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1db_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1db_metrics ={
     std::make_tuple("text", 2.51658, 2296),
     std::make_tuple("play", 2.88029, 2296), 
     std::make_tuple("html", 2.57334, 2296),
@@ -135,7 +88,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1db_met
     std::make_tuple("man",  3.36882, 2296)
 }; 
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1ea_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1ea_metrics ={
     std::make_tuple("text", 2.14059, 3062),
     std::make_tuple("play", 2.39152, 3062), 
     std::make_tuple("html", 2.2303,  3062), 
@@ -149,7 +102,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1ea_met
     std::make_tuple("man",  2.89567, 3062)
 };
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1eb_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1eb_metrics ={
     std::make_tuple("text", 2.1156,  4875),
     std::make_tuple("play", 2.39344, 4875), 
     std::make_tuple("html", 2.21729, 4875),
@@ -163,7 +116,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1eb_met
     std::make_tuple("man",  2.89189, 4875) 
 };
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1ec_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_1ec_metrics ={
     std::make_tuple("text", 2.12334, 5484),
     std::make_tuple("play", 2.41478, 5484),
     std::make_tuple("html", 2.22022, 5484),
@@ -177,7 +130,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_1ec_met
     std::make_tuple("man",  2.90135, 5484)
 }; 
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_2a_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_2a_metrics ={
     std::make_tuple("text", 2.9275,  4641), 
     std::make_tuple("play", 3.17293, 4641),
     std::make_tuple("html", 2.71349, 4641), 
@@ -191,7 +144,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_2a_metr
     std::make_tuple("man",  3.51455, 4641) 
 }; 
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_3a_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_3a_metrics ={
     std::make_tuple("text", 6.2395,  547),
     std::make_tuple("play", 6.63121, 547),
     std::make_tuple("html", 4.57408, 547),
@@ -205,7 +158,7 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_3a_metr
     std::make_tuple("man",  6.01278, 547)
 }; 
 
-constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_3b_metrics ={
+const std::array<std::tuple<std::string, double, double>, 11> kernel_3b_metrics ={
     std::make_tuple("text", 5.86693, 734),
     std::make_tuple("play", 6.48396, 734), 
     std::make_tuple("html", 4.52433, 734),
@@ -220,10 +173,11 @@ constexpr std::array<std::tuple<std::string, double, double>, 11> kernel_3b_metr
 }; 
 
 
+
 // Function to get the BPB for a specific file type and kernel
 template <std::size_t N>
-double get_bpb_for_file_type(const KernelMetrics<N>& kernel_metrics, const std::string& file_type) {
-    for (const auto& entry : kernel_metrics.file_types) {
+double get_bpb_for_file_type(KernelMetrics<N>& kernel_metrics, std::string& file_type) {
+    for (auto& entry : kernel_metrics.file_types) {
         if (entry == file_type) {
             return kernel_metrics.bpbs[std::distance(kernel_metrics.file_types.begin(), &entry)];
         }
@@ -233,39 +187,47 @@ double get_bpb_for_file_type(const KernelMetrics<N>& kernel_metrics, const std::
 
 // Function to select the best kernel based on user-specified alpha and file type
 template <std::size_t N>
-const KernelMetrics<N>& select_best_kernel_for_file_type(const std::vector<KernelMetrics<N>>& kernels, const std::string& file_type, double alpha) {
-    std::vector<double> performance_measures;
-
-    for (const auto& kernel : kernels) {
+std::size_t select_best_kernel_index_for_file_type(std::vector<KernelMetrics<N>>& kernels, std::string& file_type, double alpha) {
+    // Avg BPB and Comp time for the given file type across all kernels
+    double total_bpb = 0.0;
+    double total_compression_time = 0.0;
+    int count = 0;
+    for (auto& kernel : kernels) {
         double bpb = get_bpb_for_file_type(kernel, file_type);
         double compression_time = kernel.compression_times[std::distance(kernel.file_types.begin(), std::find(kernel.file_types.begin(), kernel.file_types.end(), file_type))];
+        if (bpb != -1.0) {
+            total_bpb += bpb;
+            total_compression_time += compression_time;
+            ++count;
+        }
+    }
+    double avg_bpb = (count > 0) ? (total_bpb / count) : 0.0;
+    double avg_compression_time = (count > 0) ? (total_compression_time / count) : 0.0;
 
+    std::vector<double> performance_measures;
+
+    // Calculate the performance measure for each kernel
+    for (auto& kernel : kernels) {
+        double compression_time = kernel.compression_times[std::distance(kernel.file_types.begin(), std::find(kernel.file_types.begin(), kernel.file_types.end(), file_type))];
+
+        double bpb = get_bpb_for_file_type(kernel, file_type);
         if (bpb == -1.0) {
             // Handle case where file type is not found 
             std::cerr << "Error: File type '" << file_type << "' not found in kernel metrics." << std::endl;
             continue; // Skip this kernel
         }
 
-        double compression_ratio = 8.0 / bpb; // Calculate compression ratio 
-        double time_factor = 1.0 / compression_time;
+        double compression_ratio = 8.0 / avg_bpb; // compression_ratio using avg_bpb
+        double time_factor = avg_compression_time / compression_time; 
         double performance_measure = alpha * compression_ratio + (1 - alpha) * time_factor;
 
         performance_measures.push_back(performance_measure);
     }
 
-    // Find the kernel with the maximum performance measure
-    auto best_kernel_it = std::max_element(kernels.begin(), kernels.end(),
-                                           [&](const auto& lhs, const auto& rhs) {
-                                               return performance_measures[std::distance(kernels.begin(), &lhs)] <
-                                                      performance_measures[std::distance(kernels.begin(), &rhs)];
-                                           });
-
-    return *best_kernel_it; 
+    // Find the index of the kernel with the maximum performance measure
+    auto best_kernel_index = std::distance(performance_measures.begin(), std::max_element(performance_measures.begin(), performance_measures.end()));
+    return best_kernel_index+1;
 }
+
 
 } // namespace easy_compress_dlib
-
-int main() {
-    // Your program logic here
-    return 0; // Return 0 to indicate successful execution
-}
