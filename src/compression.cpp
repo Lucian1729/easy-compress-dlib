@@ -14,21 +14,6 @@
 
 namespace easy_compress_dlib {
 
-// Define a type alias for the CompressionProfile with all template arguments
-using DefaultCompressionProfile = CompressionProfile<std::string, std::string, double, int>;
-
-CompressionProfile<std::string, std::string, double, int> profile1("Profile1", "txt", 0.5);
-    
-// Instantiate another compression profile
-CompressionProfile<std::string, std::string, double, int> profile2("Profile2", "jpg", 0.8);
-
-// Instantiate a container for compression profiles
-CompressionProfiles<CompressionProfile<std::string, std::string, double, int>> profiles;
-
-// Add profiles to the container
-profiles.add_profile(std::move(profile1));
-profiles.add_profile(std::move(profile2));
-
 int easy_compress(const std::string& input_filepath, const std::string& output_filepath, const std::string& file_type, double alpha) {
     // Error handling
     if (!std::filesystem::exists(input_filepath)) {

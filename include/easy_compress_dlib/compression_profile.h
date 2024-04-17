@@ -12,6 +12,8 @@
 #include <utility>
 #include <concepts>
 
+namespace easy_compress_dlib {
+
 // Type traits to check if a type is a tuple
 template <typename T>
 struct is_tuple : std::false_type {};
@@ -35,7 +37,7 @@ int kernel_selection() {
 }
 
 // Compression profile class
-template <typename ProfileName, typename FileType, typename Alpha, typename Kernel>
+template <typename ProfileName = std::string, typename FileType= std::string, typename Alpha = double, typename Kernel = int>
 class CompressionProfile {
 public:
     CompressionProfile(ProfileName&& profile_name, FileType&& file_type, Alpha alpha)
@@ -144,5 +146,7 @@ public:
 private:
     std::map<std::string, Profile> profiles_;
 };
+
+}
 
 #endif // COMPRESSION_PROFILES_H 
