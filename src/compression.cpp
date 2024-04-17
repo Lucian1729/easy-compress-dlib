@@ -1,5 +1,6 @@
 #include "../include/easy_compress_dlib/compression.h"
 #include "../include/easy_compress_dlib/kernel_selection.h"
+#include "../include/easy_compress_dlib/compression_profile.h"
 
 #include <dlib/compress_stream.h>
 #include <dlib/entropy_encoder_model.h>
@@ -9,7 +10,24 @@
 #include <sstream>
 #include <filesystem>
 
+#define KERNEL_COUNT 11
+
 namespace easy_compress_dlib {
+
+// Define a type alias for the CompressionProfile with all template arguments
+using DefaultCompressionProfile = CompressionProfile<std::string, std::string, double, int>;
+
+CompressionProfile<std::string, std::string, double, int> profile1("Profile1", "txt", 0.5);
+    
+// Instantiate another compression profile
+CompressionProfile<std::string, std::string, double, int> profile2("Profile2", "jpg", 0.8);
+
+// Instantiate a container for compression profiles
+CompressionProfiles<CompressionProfile<std::string, std::string, double, int>> profiles;
+
+// Add profiles to the container
+profiles.add_profile(std::move(profile1));
+profiles.add_profile(std::move(profile2));
 
 int easy_compress(const std::string& input_filepath, const std::string& output_filepath, const std::string& file_type, double alpha) {
     // Error handling
@@ -26,16 +44,70 @@ int easy_compress(const std::string& input_filepath, const std::string& output_f
     // Select kernel
     int kernel_index = select_kernel(file_type, alpha);
 
+    std::string output_filename = output_filepath;
+    if (output_filename.find('.') == std::string::npos) {
+        // Add extension if not present
+        output_filename += ".easy_compressed_";
+    } else {
+        // Replace existing extension
+        output_filename = output_filename.substr(0, output_filename.find_last_of('.')) + ".easy_compressed_"; 
+    }
+    output_filename += std::to_string(kernel_index);
+
     // Compress using selected kernel
-    map_kernel_and_compress(input_filepath, output_filepath, kernel_index);
+    map_kernel_and_compress(input_filepath, output_filename, kernel_index);
 
     return kernel_index;
 }
 
-void easy_decompress(const std::string& input_filepath, const std::string& output_filepath, int kernel_index) {
+int easy_compress_with_profile(const std::string& input_path, const std::string& output_path, const std::string& profile_name) {
+    // Error handling
+    if (!std::filesystem::exists(input_path)) {
+        throw std::invalid_argument("Input file does not exist: " + input_path);
+    }
+
+    // Get the kernel from the profile
+    int kernel_index = profiles.get_kernel_for_profile(profile_name);
+
+    std::string output_filename = output_path;
+    if (output_filename.find('.') == std::string::npos) {
+        // Add extension if not present
+        output_filename += ".easy_compressed_";
+    } else {
+        // Replace existing extension
+        output_filename = output_filename.substr(0, output_filename.find_last_of('.')) + ".easy_compressed_"; 
+    }
+    output_filename += std::to_string(kernel_index);
+
+    // Call map_kernel_and_compress with the kernel index
+    map_kernel_and_compress(input_path, output_filename, kernel_index);
+
+    return kernel_index;
+}
+
+void easy_decompress(const std::string& input_filepath, const std::string& output_filepath) {
     // Error handling
     if (!std::filesystem::exists(input_filepath)) {
         throw std::invalid_argument("Input file does not exist: " + input_filepath);
+    }
+
+    std::string filename = input_filepath;
+    size_t extension_start = filename.find_last_of('.');
+    if (extension_start == std::string::npos || 
+        !filename.compare(extension_start, 15, ".easy_compressed_")) {
+        throw std::runtime_error("Invalid compressed file: missing or incorrect extension");
+    }
+
+    int kernel_index;
+    try {
+        kernel_index = std::stoi(filename.substr(extension_start + 15));
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Invalid compressed file: unable to parse kernel index"); 
+    }
+
+    // Validate kernel index
+    if (kernel_index < 0 || kernel_index >= KERNEL_COUNT) {
+        throw std::runtime_error("Invalid compressed file: invalid kernel index");
     }
 
     // Decompress using the specified kernel
@@ -138,7 +210,6 @@ bool isValidFileType(const std::string& fileType) {
     validFileTypes.insert("man");
     return validFileTypes.contains(fileType);
 }
-
 
 // Helper function to compress data using a compress_stream kernel
 template <typename Kernel, typename InputIterator, typename OutputIterator>
