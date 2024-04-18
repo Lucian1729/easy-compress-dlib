@@ -30,11 +30,11 @@ concept valid_compression_profile = is_tuple<T>::value && std::tuple_size<T>::va
                                    std::is_integral_v<std::tuple_element_t<3, T>>;
 
 // Kernel selection function (placeholder) - get from kernel_selection
-template <std::string file_type, double alpha>
-int kernel_selection() {
-    // Implement your kernel selection logic here
-    return 123;
-}
+// template <std::string file_type, double alpha>
+// int kernel_selection() {
+//     // Implement your kernel selection logic here
+//     return 123;
+// }
 
 // Compression profile class
 template <typename ProfileName = std::string, typename FileType= std::string, typename Alpha = double, typename Kernel = int>
@@ -111,14 +111,14 @@ public:
         std::string line;
         int line_number = 1; // Track line number for error reporting
         while (std::getline(input_file, line)) {
-            std::stringstream line_stream(line);
+            std::istringstream line_stream(line); // Changed to std::istringstream
             std::string cell;
             std::vector<std::string> values;
 
-            // Extract comma-separated values
-            while (std::getline(line_stream, cell, ',')) {
-                values.push_back(cell);
-            }
+        // Extract comma-separated values
+        while (std::getline(line_stream, cell, ',')) {
+            values.push_back(cell);
+        }
 
             if (values.size() == 4) {
                 try {
@@ -128,7 +128,7 @@ public:
                     int kernel = std::stoi(values[3]);
 
                     // Create a temporary profile and add it to the profiles_ map
-                    CompressionProfile profile(profile_name, file_type, alpha, kernel);
+                    CompressionProfile profile(profile_name, file_type, alpha);
                     profiles_.emplace(profile_name, std::move(profile));
                 } catch (const std::exception& e) {
                     // Handle conversion errors (e.g., invalid alpha or kernel)
