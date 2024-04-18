@@ -35,6 +35,14 @@ void decompress_kernel_3a(const std::string& input, std::string& output);
 void compress_kernel_3b(const std::string& input, std::string& output);
 void decompress_kernel_3b(const std::string& input, std::string& output);
 
+// remaining functions
+
+int easy_compress(const std::string& input_filepath, const std::string& output_filepath, const std::string& file_type, double alpha);
+int easy_compress_with_profile(const std::string& input_path, const std::string& output_path, const std::string& profile_name);
+void easy_decompress(const std::string& input_filepath, const std::string& output_filepath);
+void map_kernel_and_compress(const std::string& input_filepath, const std::string& output_filepath, int kernel_index);
+void map_kernel_and_decompress(const std::string& input_filepath, const std::string& output_filepath, int kernel_index);
+bool isValidFileType(const std::string& fileType);
 
 } // namespace easy_compress_dlib
 
