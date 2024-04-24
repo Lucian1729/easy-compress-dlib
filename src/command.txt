@@ -1,1 +1,1 @@
-g++ -o usage usage.cpp compression.cpp kernel_selection.cpp -I C:\dlib\install\include -L C:\dlib\install\lib -ldlib
+g++ -o usage usage.cpp  -I C:\dlib\install\include -L C:\dlib\install\lib -ldlib

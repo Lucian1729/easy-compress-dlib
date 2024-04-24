@@ -126,3 +126,5 @@ template <typename U>
 void swapElements(Vector<U>& v1, Vector<U>& v2, size_t index1, size_t index2) {
     std::swap(v1[index1], v2[index2]);
 }
+
+#endif

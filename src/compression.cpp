@@ -74,12 +74,12 @@ int easy_compress_with_profile(const std::string& input_path, const std::string&
     return kernel_index;
 }
 void map_kernel_and_compress(const std::string& input_filepath, const std::string& output_filepath, int kernel_index) {
-    // Read input file
-    std::ifstream input_file(input_filepath, std::ios::binary);
+    // Read input file as text
+    std::ifstream input_file(input_filepath);
     std::stringstream input_stream;
     input_stream << input_file.rdbuf();
     std::string input_data = input_stream.str();
-    std::cout << "map input data : " << input_data << "\n";
+
     // Choose compression function based on kernel index
     std::string compressed_data;
     switch (kernel_index) {
@@ -98,19 +98,17 @@ void map_kernel_and_compress(const std::string& input_filepath, const std::strin
     }
 
     // Write compressed data to output file
-     std::cout << "map compress : " << compressed_data << "\n";
     std::ofstream output_file(output_filepath, std::ios::binary);
     output_file << compressed_data;
 }
 
 void map_kernel_and_decompress(const std::string& input_filepath, const std::string& output_filepath, int kernel_index) {
-    // Read input file
-    std::ifstream input_file(input_filepath, std::ios::binary);
+    // Read input file as text
+    std::ifstream input_file(input_filepath);
     std::stringstream input_stream;
     input_stream << input_file.rdbuf();
     std::string compressed_data = input_stream.str();
 
-    std::cout << "map decompress : " << compressed_data << "\n";
     // Choose decompression function based on kernel index
     std::string decompressed_data;     
     switch (kernel_index) {
@@ -131,8 +129,6 @@ void map_kernel_and_decompress(const std::string& input_filepath, const std::str
     // Write decompressed data to output file
     std::ofstream output_file(output_filepath, std::ios::binary);
     output_file << decompressed_data;
-
-    std::cout << "Decompressed Output:\n" << decompressed_data << std::endl;
 }
 
 // Pass the profiles object as a parameter to the map_kernel_and_compress function
@@ -183,52 +179,49 @@ public:
         return false;
     }
 
-    void insert(const T& value) {
+    template <typename... Args>
+    void insert(Args&&... args) {
+        (insert_single(std::forward<Args>(args)), ...);
+    }
+
+private:
+    void insert_single(const T& value) {
         if (!contains(value)) {
             data_.push_back(value);
         }
     }
-
-private:
     std::vector<T> data_;
 };
 
 // Function to check if the provided file type is valid
 bool isValidFileType(const std::string& fileType) {
     MySet<std::string> validFileTypes;
-    validFileTypes.insert("text");
-    validFileTypes.insert("play");
-    validFileTypes.insert("html");
-    validFileTypes.insert("Csrc");
-    validFileTypes.insert("Excl");
-    validFileTypes.insert("tech");
-    validFileTypes.insert("poem");
-    validFileTypes.insert("fax");
-    validFileTypes.insert("SPRC");
-    validFileTypes.insert("man");
+    validFileTypes.insert("text","play","html","Csrc","Excl","tech","poem","fax","SPRC","man");
     return validFileTypes.contains(fileType);
 }
-
-// Helper function to compress data using a compress_stream kernel
 template <typename Kernel, typename InputIterator, typename OutputIterator>
 void compress(Kernel& kernel, InputIterator input_begin, InputIterator input_end, OutputIterator output_begin) {
     std::istringstream input_stream(std::string(input_begin, input_end));
     std::ostringstream output_stream;
     kernel.compress(input_stream, output_stream);
-    std::copy(output_stream.str().begin(), output_stream.str().end(), output_begin);
+    if (!output_stream) {
+        throw std::runtime_error("Compression failed");
+    }
+    std::string compressed_data = output_stream.str();
+    std::copy(compressed_data.begin(), compressed_data.end(), output_begin);
 }
 
-// Helper function to decompress data using a compress_stream kernel
 template <typename Kernel, typename InputIterator, typename OutputIterator>
 void decompress(Kernel& kernel, InputIterator input_begin, InputIterator input_end, OutputIterator output_begin) {
     std::istringstream input_stream(std::string(input_begin, input_end));
     std::ostringstream output_stream;
     kernel.decompress(input_stream, output_stream);
-    std::copy(output_stream.str().begin(), output_stream.str().end(), output_begin);
-    std::string dec = std::string(input_begin, input_end);
-    std::cout << "Inside decompress " << dec << "\n";
+    if (!output_stream) {
+        throw std::runtime_error("Decompression failed");
+    }
+    std::string decompressed_data = output_stream.str();
+    std::copy(decompressed_data.begin(), decompressed_data.end(), output_begin);
 }
-
 // Compression and decompression functions using various kernels
 
 // compress_stream_kernel_1 implementations
