@@ -9,10 +9,190 @@
 #include <dlib/lzp_buffer.h>
 #include <sstream>
 #include <filesystem>
+#include "../include/easy_compress_dlib/custom_vector.h"
 
 #define KERNEL_COUNT 11
 
 namespace easy_compress_dlib {
+
+template <typename Kernel, typename InputIterator, typename OutputIterator>
+void compress(Kernel& kernel, InputIterator input_begin, InputIterator input_end, OutputIterator output_begin);
+
+template <typename Kernel, typename InputIterator, typename OutputIterator>
+void decompress(Kernel& kernel, InputIterator input_begin, InputIterator input_end, OutputIterator output_begin);
+
+
+// hash function :
+
+template <typename... Args>
+std::uint32_t checksum(Args... args) {
+    std::uint32_t result = 0;
+    // Fold expression to accumulate hash values
+    ((result ^= std::hash<std::decay_t<Args>>{}(args)), ...);
+    return result;
+}
+
+// parameter packs
+template <typename... Strings>
+void hashFileContents(const std::string& inputFilePath, const std::string& outputFilePath, Strings... extraStrings) {
+    std::ifstream inputFile(inputFilePath);
+    std::ofstream outputFile(outputFilePath);
+
+    if (!inputFile.is_open() || !outputFile.is_open()) {
+        std::cerr << "Error opening files!" << std::endl;
+        return;
+    }
+
+    std::string line;
+    while (getline(inputFile, line)) {
+        std::istringstream iss(line);
+        std::string word;
+        while (iss >> word) {
+            auto wordHash = checksum(word, extraStrings...);  // Compute the hash for each word
+            outputFile << wordHash << " ";  // Write the hash to the output file
+        }
+    }
+
+    inputFile.close();
+    outputFile.close();
+}
+
+template <typename... Strings>
+void dehashFileWords(const std::string& inputFilePath, const std::string& outputFilePath, const std::string& originalTextFilePath, Strings... extraStrings) {
+    std::ifstream inputFile(inputFilePath);
+    std::ifstream originalFile(originalTextFilePath);
+    std::ofstream outputFile(outputFilePath);
+
+    if (!inputFile.is_open() || !outputFile.is_open() || !originalFile.is_open()) {
+        std::cerr << "Error opening files!" << std::endl;
+        return;
+    }
+
+    std::string line, originalLine;
+    while (getline(inputFile, line) && getline(originalFile, originalLine)) {
+        std::istringstream iss(line), issOriginal(originalLine);
+        std::string hashString, originalWord;
+        while (iss >> hashString && issOriginal >> originalWord) {
+            auto hash = std::stoul(hashString);
+            auto originalHash = checksum(originalWord, extraStrings...);
+            if (hash == originalHash) {
+                outputFile << originalWord << " ";
+            }
+        }
+        outputFile << std::endl;
+    }
+
+    inputFile.close();
+    originalFile.close();
+    outputFile.close();
+}
+
+
+
+
+
+
+// Benchmark function
+
+template <typename Kernel, typename InputIterator, typename OutputIterator>
+auto benchmark_kernel(Kernel& kernel, InputIterator input_begin, InputIterator input_end,
+                      OutputIterator output_begin, int iterations = 100) {
+    using namespace std::chrono;
+    
+    static_assert(std::is_invocable_r_v<void, decltype(&Kernel::compress), Kernel&, std::istream&, std::ostream&>,
+                  "Kernel must have a compress(istream&, ostream&) member function");
+    static_assert(std::is_invocable_r_v<void, decltype(&Kernel::decompress), Kernel&, std::istream&, std::ostream&>,
+                  "Kernel must have a decompress(istream&, ostream&) member function");
+
+    auto measure_compress_time = [&](auto& k, auto i_begin, auto i_end, auto o_begin) {
+        auto start = high_resolution_clock::now();
+        compress(k, i_begin, i_end, o_begin);
+        auto end = high_resolution_clock::now();
+        return duration_cast<microseconds>(end - start).count();
+    };
+
+    // Lambda template to measure decompression time (modified)
+    auto measure_decompress_time = [&](auto& kernel, auto compressed_begin, auto compressed_end, auto output_begin) {
+        auto start = high_resolution_clock::now();
+        decompress(kernel, compressed_begin, compressed_end, output_begin);
+        auto end = high_resolution_clock::now();
+        return duration_cast<microseconds>(end - start).count();
+    };
+
+    // Perform benchmarks and calculate average times
+    double compress_time_total = 0;
+    double decompress_time_total = 0;
+    std::vector<char> compressed_data;  // Store compressed data
+
+    for (int i = 0; i < iterations; ++i) {
+        compressed_data.clear(); // Clear for each iteration
+        compress_time_total += measure_compress_time(kernel, input_begin, input_end, std::back_inserter(compressed_data));
+        decompress_time_total += measure_decompress_time(kernel, compressed_data.begin(), compressed_data.end(), output_begin); 
+    }
+
+    return std::make_pair(compress_time_total / iterations, decompress_time_total / iterations);
+}
+
+
+template <typename Kernel>
+void run_benchmark(const std::string& inputPath, Kernel& kernel,int ind) {
+    std::ifstream ifs(inputPath);
+    if (!ifs) {
+        std::cerr << "Failed to open input file: " << inputPath << std::endl;
+        return;
+    }
+
+    // Read input file into a string
+    std::stringstream buffer;
+    buffer << ifs.rdbuf();
+    std::string inputData = buffer.str();
+
+    // Prepare containers for compressed and decompressed data
+    std::string compressedData;
+    std::string decompressedData;
+
+    // Run benchmark
+    auto results = benchmark_kernel(kernel, inputData.begin(), inputData.end(), std::back_inserter(compressedData), 100);
+    std::cout << "Average Compression Time for the kernel " << ind << ": " << results.first << " microseconds\n";
+    std::cout << "Average Decompression Time for the kernel " << ind << ": " << results.second << " microseconds\n";
+}
+
+void select_and_run_benchmark(const std::string& inputPath) {
+    dlib::compress_stream::kernel_1a kernel1;
+    run_benchmark(inputPath, kernel1,1);
+
+    dlib::compress_stream::kernel_1b kernel2;
+    run_benchmark(inputPath, kernel2,2);
+
+    dlib::compress_stream::kernel_1c kernel3;
+    run_benchmark(inputPath, kernel3,3);
+    
+    dlib::compress_stream::kernel_1da kernel4;
+    run_benchmark(inputPath, kernel4,4);
+
+    dlib::compress_stream::kernel_1db kernel5;
+    run_benchmark(inputPath, kernel5,5);
+
+    dlib::compress_stream::kernel_1ea kernel6;
+    run_benchmark(inputPath, kernel6,6);
+
+    dlib::compress_stream::kernel_1eb kernel7;
+    run_benchmark(inputPath, kernel7,7);
+
+    dlib::compress_stream::kernel_1ec kernel8;
+    run_benchmark(inputPath, kernel8,8);
+
+    dlib::compress_stream::kernel_2a kernel9;
+    run_benchmark(inputPath, kernel9,9);
+
+    dlib::compress_stream::kernel_3a kernel10;
+    run_benchmark(inputPath, kernel10,10);
+
+    dlib::compress_stream::kernel_3b kernel11;
+    run_benchmark(inputPath, kernel11,11);
+
+}
+
 
 // Pass the profiles object as a parameter to the easy_compress function
 int easy_compress(const std::string& input_filepath, const std::string& output_filepath, const std::string& file_type, double alpha) {
@@ -136,7 +316,6 @@ void map_kernel_and_decompress(const std::string& input_filepath, const std::str
 // Pass the profiles object as a parameter to the easy_decompress function
 void easy_decompress(const std::string& input_filepath, const std::string& output_filepath) {
     // Error handling
-    std::cout << "HERE\n";
     if (!std::filesystem::exists(input_filepath)) {
         throw std::invalid_argument("Input file does not exist: " + input_filepath);
     }
@@ -159,7 +338,6 @@ void easy_decompress(const std::string& input_filepath, const std::string& outpu
     if (kernel_index < 0 || kernel_index >= KERNEL_COUNT) {
         throw std::runtime_error("Invalid compressed file: invalid kernel index");
     }
-    std::cout << kernel_index << "\n";
     // Decompress using the specified kernel
     map_kernel_and_decompress(input_filepath, output_filepath, kernel_index);
 }
@@ -190,7 +368,7 @@ private:
             data_.push_back(value);
         }
     }
-    std::vector<T> data_;
+    Vector<T> data_;
 };
 
 // Function to check if the provided file type is valid

@@ -16,32 +16,14 @@
 
 namespace easy_compress_dlib {
 
-// Type traits to check if a type is a tuple
-template <typename T>
-struct is_tuple : std::false_type {};
-
-template <typename... Ts>
-struct is_tuple<std::tuple<Ts...>> : std::true_type {};
-
-// Concept to check if a type is a valid compression profile
-// template <typename T>
-// concept valid_compression_profile = is_tuple<T>::value && std::tuple_size<T>::value == 4 &&
-//                                    std::is_same_v<std::tuple_element_t<0, T>, std::string> &&
-//                                    std::is_same_v<std::tuple_element_t<1, T>, std::string> &&
-//                                    std::is_floating_point_v<std::tuple_element_t<2, T>> &&
-//                                    std::is_integral_v<std::tuple_element_t<3, T>>;
-
-// Kernel selection function (placeholder) - get from kernel_selection
-// template <std::string file_type, double alpha>
-// int kernel_selection() {
-//     // Implement your kernel selection logic here
-//     return 123;
-// }
 
 // Compression profile class
 template <typename Alpha = double, typename Kernel = int>
 class CompressionProfile {
 public:
+    // type traits for alpha and kernel
+    static_assert(std::is_same<Alpha, double>::value, "Alpha must be of type double");
+    static_assert(std::is_integral<Kernel>::value, "Kernel must be an integral type");
     CompressionProfile(const char* profile_name, const char* file_type, Alpha alpha)
         : profile_name_(profile_name),
           file_type_(file_type),
@@ -60,8 +42,19 @@ private:
     Kernel kernel_;
 };
 
+
+template<typename T>
+concept IsCompressionProfile = requires(T profile) {
+    { profile.get_profile_name() } -> std::same_as<const char*>;
+    { profile.get_kernel() } -> std::convertible_to<int>; 
+    { profile.get_file_type() } -> std::same_as<const char*>;
+    { profile.get_alpha() } -> std::convertible_to<double>;
+};
+
+
 // Compression profiles container
 template <typename Profile>
+requires IsCompressionProfile<Profile>
 class CompressionProfiles {
 public:
     // Add a new profile

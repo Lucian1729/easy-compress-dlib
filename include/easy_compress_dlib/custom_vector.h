@@ -1,130 +1,117 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-
 #include <cstdlib>
-#include <bits/stdc++.h>
-#include <type_traits>
 #include <algorithm>
-
-// Concept to ensure that the type T is copyable
-template <typename T>
-concept Copyable = std::is_copy_constructible_v<T> && std::is_copy_assignable_v<T>;
-
-// Concept to ensure that the type T is move-constructible and move-assignable
-template <typename T>
-concept MoveAble = std::is_move_constructible_v<T> && std::is_move_assignable_v<T>;
+#include <initializer_list>
+#include <memory>
+#include <utility>
+#include <stdexcept>
 
 template <typename T>
 class Vector {
 private:
-    T* data;
-    size_t size;
-    size_t capacity;
+    T* data_;
+    size_t size_;
+    size_t capacity_;
+
+    void check_index(size_t index) const {
+        if (index >= size_) {
+            throw std::out_of_range("Index out of range");
+        }
+    }
 
 public:
     // Constructors
-    Vector() : data(nullptr), size(0), capacity(0) {}
-    explicit Vector(size_t initial_capacity) : data(new T[initial_capacity]), size(0), capacity(initial_capacity) {}
+    Vector() : data_(nullptr), size_(0), capacity_(0) {}
+    explicit Vector(size_t initial_capacity) 
+        : data_(initial_capacity ? new T[initial_capacity] : nullptr), size_(0), capacity_(initial_capacity) {}
 
-    // Variadic template constructor to support uniform initialization
-    template <typename... Args>
-    explicit Vector(Args&&... args) : data(new T[sizeof...(Args)]), size(sizeof...(Args)), capacity(sizeof...(Args)) {
-        size_t index = 0;
-        (void)std::initializer_list<int>{(data[index++] = std::forward<Args>(args), 0)...};
+    Vector(const Vector& other) 
+        : data_(new T[other.capacity_]), size_(other.size_), capacity_(other.capacity_) {
+        std::copy(other.data_, other.data_ + other.size_, data_);
     }
 
-    // Destructor
+    Vector(Vector&& other) noexcept 
+        : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {
+        other.data_ = nullptr;
+        other.size_ = 0;
+        other.capacity_ = 0;
+    }
+
+    Vector& operator=(Vector other) {
+        swap(other);
+        return *this;
+    }
+
     ~Vector() {
-        delete[] data;
+        delete[] data_;
     }
 
-    // Copy constructor and assignment operator
-    Vector(const Vector& other) : data(new T[other.capacity]), size(other.size), capacity(other.capacity) {
-        for (size_t i = 0; i < size; ++i) {
-            data[i] = other.data[i];
-        }
+    void swap(Vector& other) noexcept {
+        using std::swap;
+        swap(data_, other.data_);
+        swap(size_, other.size_);
+        swap(capacity_, other.capacity_);
     }
 
-    Vector& operator=(const Vector& other) {
-        if (this != &other) {
-            delete[] data;
-            data = new T[other.capacity];
-            size = other.size;
-            capacity = other.capacity;
-            for (size_t i = 0; i < size; ++i) {
-                data[i] = other.data[i];
-            }
-        }
-        return *this;
+    T* begin() {
+        return data_;
     }
 
-    // Move constructor and assignment operator
-    Vector(Vector&& other) noexcept : data(other.data), size(other.size), capacity(other.capacity) {
-        other.data = nullptr;
-        other.size = 0;
-        other.capacity = 0;
+    const T* begin() const {
+        return data_;
     }
 
-    Vector& operator=(Vector&& other) noexcept {
-        if (this != &other) {
-            delete[] data;
-            data = other.data;
-            size = other.size;
-            capacity = other.capacity;
-            other.data = nullptr;
-            other.size = 0;
-            other.capacity = 0;
-        }
-        return *this;
+    T* end() {
+        return data_ + size_;
     }
 
-    // Template friend function to allow access to private members
-    template <typename U>
-    friend void swapElements(Vector<U>& v1, Vector<U>& v2, size_t index1, size_t index2);
+    const T* end() const {
+        return data_ + size_;
+    }
+    
+    // Accessors
+    size_t getSize() const { return size_; }
+    size_t getCapacity() const { return capacity_; }
+    T& operator[](size_t index) {
+        check_index(index);
+        return data_[index];
+    }
+    const T& operator[](size_t index) const {
+        check_index(index);
+        return data_[index];
+    }
 
-    // Member functions
-    size_t getSize() const { return size; }
-    size_t getCapacity() const { return capacity; }
-
+    // Modifiers
     void push_back(const T& value) {
-        if (size == capacity) {
-            reserve(capacity == 0 ? 1 : capacity * 2);
+        if (size_ == capacity_) {
+            reserve(capacity_ == 0 ? 1 : capacity_ * 2);
         }
-        data[size++] = value;
+        data_[size_++] = value;
+    }
+
+    void push_back(T&& value) {
+        if (size_ == capacity_) {
+            reserve(capacity_ == 0 ? 1 : capacity_ * 2);
+        }
+        data_[size_++] = std::move(value);
     }
 
     void reserve(size_t new_capacity) {
-        if (new_capacity > capacity) {
+        if (new_capacity > capacity_) {
             T* new_data = new T[new_capacity];
-            for (size_t i = 0; i < size; ++i) {
-                new_data[i] = std::move(data[i]);
-            }
-            delete[] data;
-            data = new_data;
-            capacity = new_capacity;
+            std::move(data_, data_ + size_, new_data);
+            delete[] data_;
+            data_ = new_data;
+            capacity_ = new_capacity;
         }
     }
 
-    T& operator[](size_t index) {
-        return data[index];
-    }
-
-    const T& operator[](size_t index) const {
-        return data[index];
-    }
-
-    // Rotate the vector to the left by n positions
-    void rotate(size_t n) {
-        n %= size; // Handle cases where n is greater than size
-        std::rotate(data, data + n, data + size);
+    // Utility
+    void clear() {
+        size_ = 0;  // Optionally destroy elements if T is a complex type
     }
 };
 
-// Template friend function to swap elements in two vectors
-template <typename U>
-void swapElements(Vector<U>& v1, Vector<U>& v2, size_t index1, size_t index2) {
-    std::swap(v1[index1], v2[index2]);
-}
-
-#endif
+#endif  // VECTOR_H
